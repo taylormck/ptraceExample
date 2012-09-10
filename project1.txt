@@ -1,0 +1,18 @@
+Project 1. CS439 (Rockhold)
+
+Name1: ______________ EID1: _______ Slip days I used (this project): _______ Slip days used (total): ______
+
+Name2: ______________ EID2: _______ Slip days I used (this project): _______ Slip days used (total): ______
+
+Public CS Linux machine your solution successfully runs on:  _________.cs.utexas.edu
+
+Does it run on both 32-bit and 64-bit machines (e.g. nikon (64) and chastity (32))? ________
+
+What system call did you choose to use?:
+
+
+Explain why it was a good choice:
+
+
+List all the syscall numbers that were issued during the execution along with their syscall "name":
+
