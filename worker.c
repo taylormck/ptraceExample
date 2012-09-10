@@ -7,5 +7,6 @@
 
 int main(){
 
+  printf("Got to worker\n");
   return 0;
 }
