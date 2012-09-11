@@ -21,3 +21,6 @@ worker.o: worker.c
 
 clean:
 	rm -f controller worker *.o
+
+test: clean controller worker
+	./controller ./worker
