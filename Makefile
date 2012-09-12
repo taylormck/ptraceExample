@@ -20,7 +20,10 @@ controller.o: controller.c
 worker.o: worker.c
 
 clean:
-	rm -f controller worker *.o
+	rm -f controller worker *.o log
 
 test: clean controller worker
-	./controller ./worker
+	./controller ./worker > log && cat log
+
+test2: clean controller
+	./controller ls > log && cat log
