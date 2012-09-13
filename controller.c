@@ -31,36 +31,55 @@ int main(int argc, char** argv){
   // Child process
   if(pid == 0) {
     ptrace(PTRACE_TRACEME);
-    execvp(argv[1], &argv[2]);
+    execvp(argv[1], &argv[1]);
   }
   //------------------------------------------------------------
   // Parent process
   //------------------------------------------------------------
-  siginfo_t sig;
   int wStatus = 0;
+  long call, rc, newRC = 0;
+  struct user_regs_struct uregs;
   waitpid(pid, &wStatus, 0);
   ptrace(PTRACE_SETOPTIONS, pid, NULL, PTRACE_O_TRACESYSGOOD);
+  ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
   
   // Wait for the child process to stop
-  while(1){
+  while(1) {
+    waitpid(pid, &wStatus, 0);
 
     // Check if the child process has finished
     if(WIFEXITED(wStatus)){
       printf("child exited\n");
-      break;
+      return 0;
     }
 
-    // Check to make sure the child process has been stopped by us
-    else if(WIFSTOPPED(wStatus) && WSTOPSIG(wStatus) == SIGTRAP){
-      ptrace(PTRACE_GETSIGINFO, pid, NULL, &sig);
-      printf("syscall:  %d rc=%d\n", sig.si_signo, wStatus);
-      ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
-    }
-    else {
-      ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+    // Check to make sure the child process has been stopped
+    else if(WIFSTOPPED(wStatus)){
+      // Stopped by our ptrace call
+      if(WSTOPSIG(wStatus) == (SIGTRAP | 0x80)){
+        ptrace(PTRACE_GETREGS, pid, NULL, &uregs);
+        call = uregs.orig_rax;
+        rc = uregs.rax;
+        printf("syscall:  %ld rc=%ld --> %ld\n", call, rc, newRC);
+        if(call == 20){
+          uregs.rax = newRC;
+          newRC = 0;
+          ptrace(PTRACE_SETREGS, pid, NULL, &uregs);
+        }
+        ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+      }
+
+      // Stopped for some other reason
+      else{
+        printf("child stopped but not for system call");
+      }
     }
 
-    waitpid(pid, &wStatus, 0);
+    // Just in case waitpid() returns
+    // If the child has already resumed running, this will
+    // have no effect
+    else
+      ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
   }
   
   return 0;
