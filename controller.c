@@ -12,6 +12,14 @@
 #include <signal.h>
 #include <sys/user.h>
 
+#ifdef __x86_64__
+#define SC_NUMBER  (8 * ORIG_RAX)
+#define SC_RETCODE (8 * RAX)
+#else
+#define SC_NUMBER  (4 * ORIG_EAX)
+#define SC_RETCODE (4 * EAX)
+#endif
+
 int main(int argc, char** argv){
   // pid_t for using fork
   pid_t pid;
@@ -23,14 +31,15 @@ int main(int argc, char** argv){
   }
 
   // Fork
-  if((pid = vfork()) < 0){
-    perror("vfork()");
+  if((pid = fork()) < 0){
+    perror("fork()");
     exit(EXIT_FAILURE);
   }
 
   // Child process
   if(pid == 0) {
     ptrace(PTRACE_TRACEME);
+    kill(getpid(), SIGSTOP);
     execvp(argv[1], &argv[1]);
   }
   //------------------------------------------------------------
@@ -39,13 +48,14 @@ int main(int argc, char** argv){
   int wStatus = 0;
   long call, rc, newRC = 0;
   struct user_regs_struct uregs;
-  waitpid(pid, &wStatus, 0);
+  /*
+  wait(&wStatus);
   ptrace(PTRACE_SETOPTIONS, pid, NULL, PTRACE_O_TRACESYSGOOD);
   ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
-  
+  */
   // Wait for the child process to stop
   while(1) {
-    waitpid(pid, &wStatus, 0);
+    wait(&wStatus);
 
     // Check if the child process has finished
     if(WIFEXITED(wStatus)){
@@ -54,33 +64,31 @@ int main(int argc, char** argv){
     }
 
     // Check to make sure the child process has been stopped
-    else if(WIFSTOPPED(wStatus)){
-      // Stopped by our ptrace call
-      if(WSTOPSIG(wStatus) == (SIGTRAP | 0x80)){
-        ptrace(PTRACE_GETREGS, pid, NULL, &uregs);
-        call = uregs.orig_rax;
-        rc = uregs.rax;
+    if(!WIFSTOPPED(wStatus)){
+      perror("wait(&wStatus)");
+      exit(0);
+    }
+    // Stopped by our ptrace call
+    if(WSTOPSIG(wStatus) == (SIGTRAP/* | 0x80*/)){
+      ptrace(PTRACE_GETREGS, pid, NULL, &uregs);
+      call = uregs.orig_rax;
+      rc = uregs.rax;
+      if(rc != 32){
         printf("syscall:  %ld rc=%ld --> %ld\n", call, rc, newRC);
         if(call == 20){
           uregs.rax = newRC;
           newRC = 0;
           ptrace(PTRACE_SETREGS, pid, NULL, &uregs);
         }
-        ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
-      }
-
-      // Stopped for some other reason
-      else{
-        printf("child stopped but not for system call");
       }
     }
 
-    // Just in case waitpid() returns
-    // If the child has already resumed running, this will
-    // have no effect
-    else
-      ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+    // Stopped for some other reason
+    else{
+      printf("child stopped but not for system call.\n");
+    }
+    fflush(stdout);
+    ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
   }
-  
   return 0;
 }
