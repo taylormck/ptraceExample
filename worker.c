@@ -11,9 +11,9 @@ int main(){
 
   long rc;
   while (1){
-    sleep(10);
+    sleep(1);
     rc = syscall(SYS_getpid);
-    if(rc == 0)
+    if(rc <= 0)
       return 0;
     else{
       printf("Worker now working on task %ld.\n", rc);

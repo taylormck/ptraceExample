@@ -23,6 +23,7 @@
 int main(int argc, char** argv){
   // pid_t for using fork
   pid_t pid;
+  int returning = 0;
 
   // Assert that the arguments are correctly passed
   if(argc <= 0){
@@ -46,13 +47,13 @@ int main(int argc, char** argv){
   // Parent process
   //------------------------------------------------------------
   int wStatus = 0;
-  long call, rc, newRC = 0;
+  long call, rc, newRC = 10;
   struct user_regs_struct uregs;
-  /*
+  
   wait(&wStatus);
   ptrace(PTRACE_SETOPTIONS, pid, NULL, PTRACE_O_TRACESYSGOOD);
   ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
-  */
+  
   // Wait for the child process to stop
   while(1) {
     wait(&wStatus);
@@ -68,20 +69,31 @@ int main(int argc, char** argv){
       perror("wait(&wStatus)");
       exit(0);
     }
+    
     // Stopped by our ptrace call
-    if(WSTOPSIG(wStatus) == (SIGTRAP/* | 0x80*/)){
+    if(WSTOPSIG(wStatus) == (SIGTRAP | 0x80)){
       ptrace(PTRACE_GETREGS, pid, NULL, &uregs);
       call = uregs.orig_rax;
       rc = uregs.rax;
-      if(rc != 32){
-        printf("syscall:  %ld rc=%ld --> %ld\n", call, rc, newRC);
-        if(call == 20){
+      
+      printf("syscall:  %ld rc=%ld --> %ld\n", call, rc, newRC);
+
+      // System call getpid is not always returning.
+      // We catch it twice with every call, once when it gets called
+      // and again when it's returning.
+      // We only need to change the value in RAX when it's returning
+      if(call == 39){
+        if(returning){
           uregs.rax = newRC;
-          newRC = 0;
+          newRC--;
           ptrace(PTRACE_SETREGS, pid, NULL, &uregs);
+          returning = 0;
         }
+        else
+          returning = 1;
       }
     }
+      
 
     // Stopped for some other reason
     else{
