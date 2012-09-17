@@ -9,21 +9,11 @@ CFLAGS = -Wall
 
 all: controller worker
 
-controller: controller.o
-	${CC} ${CFLAGS} -o controller controller.o
+controller:
+	${CC} ${CFLAGS} controller.c -o controller
 
-worker: worker.o
-	${CC} ${CFLAGS} -o worker worker.o
-
-controller.o: controller.c
-
-worker.o: worker.c
+worker:
+	${CC} ${CFLAGS} worker.c -o worker
 
 clean:
 	rm -f controller worker *.o log
-
-test: clean controller worker
-	./controller ./worker > log && cat log
-
-test2: clean controller
-	./controller ls > log && cat log

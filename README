@@ -2,17 +2,37 @@ Project 1. CS439 (Rockhold)
 
 Name1: Taylor McKinney EID1: tsm544  Slip days I used (this project): 0 Slip days used (total): 0
 
-Public CS Linux machine your solution successfully runs on:  _________.cs.utexas.edu
+Public CS Linux machine your solution successfully runs on:  emo-squid.cs.utexas.edu && inskeep.cs.utexas.edu
 
-Does it run on both 32-bit and 64-bit machines (e.g. nikon (64) and chastity (32))? ________
+Does it run on both 32-bit and 64-bit machines (e.g. nikon (64) and chastity (32))? Yes
 
 What system call did you choose to use?:
 getpid()
-number 39 on my home computer
-
+number 39 on my home computer (x86_64 AMD)
+number 39 on swamp-duck (lab computer, x86_64)
+number 20 on inskeep (lab computer over ssh, x86)
 
 Explain why it was a good choice:
-Neither worker nor ls (used for testing) calls getpid such that they need the original return value,
-so changing the return value will not interrupt ls's normal operation, and can be used for worker
+ls doesn't use getpid in a meaningful way, so altering the return value doesn't affect the operation of ls.
+The worker executable does not rely on getpid's original "true" return value to function, so using
+it to pass messages will be ideal.
 
 List all the syscall numbers that were issued during the execution along with their syscall "name":
+Listed in terms of 64 bit system.
+0:   read
+1:   write
+2:   open
+3:   close
+5:   fstat
+9:   mmap
+10:  mprotect
+11:  munmap
+12:  brk
+13:  sigaction
+14:  sigprocmask
+21:  access
+35:  nanosleep
+39:  getpid  // What we're using to communicate
+59:  execve
+158: arch_prct1
+231: exit_group
