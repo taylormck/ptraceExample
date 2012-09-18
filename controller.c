@@ -59,7 +59,8 @@ int main(int argc, char** argv){
   // Parent process
   //------------------------------------------------------------
   int wStatus = 0;
-  long call, rc, newRC = 5;
+  long call, rc, new_rc_i = 0;
+  long new_rc_return_values[] = {15, 1, 4, 4, 9, 6, 4, 4, 0};
   struct user_regs_struct uregs;
   
   // Wait for the kill statement to execute
@@ -104,10 +105,10 @@ int main(int argc, char** argv){
 
       // Modify the return value of the getpid system call
       if(call == GETPID_NUM){
-	uregs.REG = newRC;
+	uregs.REG = new_rc_return_values[new_rc_i];
 	ptrace(PTRACE_SETREGS, pid, NULL, &uregs);
-	printf(" -> %ld\n", newRC);
-	newRC--;
+	printf(" -> %ld\n", new_rc_return_values[new_rc_i]);
+	new_rc_i++;
       }
       else
 	printf("\n");
